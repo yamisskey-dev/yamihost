@@ -255,8 +255,6 @@ graph TB
 
 ## Element Call / VoIP Flow
 
-Matrix (Synapse) の音声・ビデオ通話。Legacy 1:1 通話は coturn (TURN)、Element Call (MatrixRTC) は LiveKit SFU を使う。balthasar は Cloudflare Tunnel 専用で UDP メディアを直接受けられないため、メディア中継は公開IPを持つ Linode 上に置く。シグナリング・認証は Tunnel 経由 (443/wss)、メディアのみ Linode の公開IPへ直結する。
-
 ```mermaid
 graph TB
     classDef cf fill:#f0fdfa,stroke:#0f766e
@@ -290,5 +288,3 @@ graph TB
     clients -.->|TURN メディア UDP| coturn
     clients -.->|Element Call メディア UDP 7882| livekit
 ```
-
-凡例: 実線=シグナリング/認証（Cloudflare Tunnel 経由）、点線=メディア（Linode 公開IPへ直結）。
