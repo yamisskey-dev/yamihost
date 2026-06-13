@@ -219,7 +219,6 @@ graph TB
         warp[WARP]:::cf
         mediaproxy[MediaProxy<br/>media.yami.ski]:::svc
         summaryproxy[SummaryProxy]:::svc
-        coturn[Coturn TURN]:::svc
     end
 
     subgraph home[自宅サーバー]
@@ -250,10 +249,46 @@ graph TB
     misskey ==>|Tailscale| squid --> warp --> federation
     squid --> mediaproxy & summaryproxy
 
-    %% VoIP
-    synapse -.-> coturn
-    users --> coturn
-
     %% バイパス
     misskey -.-> bypass
 ```
+
+## Element Call / VoIP Flow
+
+Matrix (Synapse) の音声・ビデオ通話。Legacy 1:1 通話は coturn (TURN)、Element Call (MatrixRTC) は LiveKit SFU を使う。balthasar は Cloudflare Tunnel 専用で UDP メディアを直接受けられないため、メディア中継は公開IPを持つ Linode 上に置く。シグナリング・認証は Tunnel 経由 (443/wss)、メディアのみ Linode の公開IPへ直結する。
+
+```mermaid
+graph TB
+    classDef cf fill:#f0fdfa,stroke:#0f766e
+    classDef sec fill:#fee2e2,stroke:#991b1b
+    classDef svc fill:#f8fafc,stroke:#64748b
+    classDef rtc fill:#e0f2fe,stroke:#0369a1
+
+    clients([Element クライアント<br/>Desktop / X / Classic])
+
+    subgraph linode[Linode Proxy<br/>公開IP直結]
+        coturn[Coturn TURN<br/>3478 + relay 49160-49360/udp]:::rtc
+        livekit[LiveKit SFU<br/>ws 7880 / tcp 7881 / udp 7882]:::rtc
+        lkjwt[lk-jwt-service<br/>:8380]:::rtc
+    end
+
+    subgraph home[自宅サーバー]
+        subgraph balthasar[balthasar]
+            cf_b[Cloudflared]:::cf
+            nginx[Nginx+WAF]:::sec
+            synapse[Synapse<br/>matrix.yami.ski]:::svc
+        end
+    end
+
+    %% シグナリング / 認証（Cloudflare Tunnel 経由・443/wss）
+    clients ==>|HTTPS / wss 443| cf_b --> nginx --> synapse
+    cf_b -->|wss signaling| livekit
+    cf_b -->|JWT 発行| lkjwt
+    lkjwt -->|openid/userinfo 443| cf_b
+
+    %% メディア（Linode 公開IP へ直結・UDP）
+    clients -.->|TURN メディア UDP| coturn
+    clients -.->|Element Call メディア UDP 7882| livekit
+```
+
+凡例: 実線=シグナリング/認証（Cloudflare Tunnel 経由）、点線=メディア（Linode 公開IPへ直結）。
