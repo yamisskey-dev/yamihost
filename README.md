@@ -1,5 +1,7 @@
 # yamisskey-host
 
+> Last verified: 2026-07
+
 ## Service Architecture & Deployment Overview
 
 ```mermaid
@@ -41,10 +43,13 @@ graph LR
         minecraft[Minecraft]:::svc --> playig[playit.gg]:::svc
     end
 
-    subgraph proxmox[Proxmox - CTF]
+    subgraph proxmox[Proxmox - Security Lab]
         direction TB
         cf_p[Cloudflared]:::cf --> nginx_p[Nginx+WAF]:::proxy
         nginx_p --> ctfd[CTFd]:::svc
+        tpot[T-Pot Honeypot]:::sec
+        openclaw[OpenClaw AI Agent]:::svc
+        haos[Home Assistant OS]:::svc
     end
 
     internet --> cf_b & cf_c & cf_p
@@ -288,3 +293,14 @@ graph TB
     clients -.->|TURN メディア UDP| coturn
     clients -.->|Element Call メディア UDP 7882| livekit
 ```
+
+## Management repositories
+
+各構成要素を管理する IaC リポジトリの対応表。
+
+| リポジトリ | 管理対象 |
+|--|--|
+| [yamisskey-ansible](https://github.com/yamisskey-dev/yamisskey-ansible) | サーバープロビジョニング全般 |
+| [yamisskey-terraform](https://github.com/yamisskey-dev/yamisskey-terraform) | Proxmox VM（T-Pot / CTFd / OpenClaw / HAOS など） |
+| [yamisskey-backup](https://github.com/yamisskey-dev/yamisskey-backup) | Misskey DB → R2/B2 バックアップ |
+| [yamisskey-doctor](https://github.com/yamisskey-dev/yamisskey-doctor) | 復元・検証・修復 |
